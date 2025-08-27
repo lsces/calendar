@@ -1,4 +1,8 @@
 <?php
+
+use Bitweaver\BitDate;
+use Bitweaver\KernelTools;
+
 /**
  * @version  $Revision$
  * @package  liberty
@@ -24,17 +28,17 @@
  */
 define( 'PLUGIN_GUID_DATACALENDAR', 'datacalendar' );
 global $gLibertySystem;
-$pluginParams = array (
-	'tag' => 'CALENDAR',
-	'auto_activate' => TRUE,
-	'requires_pair' => FALSE,
+$pluginParams = [
+	'tag'           => 'CALENDAR',
+	'auto_activate' => true,
+	'requires_pair' => false,
 	'load_function' => 'data_calendar',
-	'title' => 'Calendar',
-	'help_page' => 'DataPluginCalendar',
-	'description' => tra("Displays a mini calendar that links to the calendar package."),	
-	'syntax' => " {CALENDAR} ",
-	'plugin_type' => DATA_PLUGIN
-);
+	'title'         => 'Calendar',
+	'help_page'     => 'DataPluginCalendar',
+	'description'   => KernelTools::tra( "Displays a mini calendar that links to the calendar package." ),
+	'syntax'        => " {CALENDAR} ",
+	'plugin_type'   => DATA_PLUGIN,
+];
 $gLibertySystem->registerPlugin( PLUGIN_GUID_DATACALENDAR, $pluginParams );
 $gLibertySystem->registerDataTag( $pluginParams['tag'], PLUGIN_GUID_DATACALENDAR );
 
@@ -61,7 +65,7 @@ function data_calendar( $data, $params ) {
 		 $last = $bitDate->getDate($last_time);
 		 $next = $bitDate->getDate($next_time);
 		 
-		 $days = array();
+		 $days = [];
 		 for ($i = 2; $i < 9; $i++) {
 			 // Start from known sunday.
 			 $timestamp = $bitDate->mktime(0, 0, 0, 1, $i, 2000);
@@ -69,10 +73,10 @@ function data_calendar( $data, $params ) {
 		 }
 		 
 		 // Build a two-dimensional array of UNIX timestamps.
-		 $calendar = array();
+		 $calendar = [];
 		 
 		 // Start with last days of previous month.
-		 $week = array();
+		 $week = [];
 		 $month_begin = $bitDate->mktime(0, 0, 0, $month, 1, $year);
 		 $month_begin_dow = strftime('%w', $month_begin);
 		 
@@ -95,7 +99,7 @@ function data_calendar( $data, $params ) {
 				 // Done with row
 				 $dow = 0;
 				 unset($week);
-				 $week = array();
+				 $week = [];
 			 }
 			 $d['time'] = $bitDate->mktime(0, 0, 0, $month, $i, $year);
 			 $d['dim'] = false;
@@ -127,12 +131,7 @@ function data_calendar( $data, $params ) {
 		 $gBitSmarty->assign('today', $time);
 
 		 // Assign a base url
-		 if (empty($params['events'])) {
-			 $pBaseUrl = CALENDAR_PKG_URL.'index.php';
-		 }
-		 else {
-			 $pBaseUrl = EVENTS_PKG_URL.'calendar.php';
-		 }
+		$pBaseUrl = ( empty( $params['events'] ) ) ? CALENDAR_PKG_URL . 'index.php' : CALENDAR_PKG_URL . 'calendar.php';
 		 $gBitSmarty->assign('baseCalendarUrl', $pBaseUrl);
 
 		 return $gBitSmarty->fetch('bitpackage:calendar/minical.tpl');
@@ -140,4 +139,3 @@ function data_calendar( $data, $params ) {
 	 
 	 return '<div class="error">Calendar Package Not Active</div>';
 }
-?>
