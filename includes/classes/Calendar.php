@@ -16,8 +16,10 @@ use Bitweaver\BitDate;
 use Bitweaver\KernelTools;
 use Bitweaver\Liberty\LibertyContent;
 
+global $gBitSystem, $gBitUser;
+
 // set week offset - start with a day other than monday
-define( 'WEEK_OFFSET', !empty( $gBitUser->mUserPrefs['calendar_week_offset'] ) ? $gBitUser->mUserPrefs['calendar_week_offset'] : $gBitSystem->getConfig( 'calendar_week_offset', 0 ) );
+define( 'WEEK_OFFSET', !empty( $gBitUser->mPrefs['calendar_week_offset'] ) ? $gBitUser->mPrefs['calendar_week_offset'] : $gBitSystem->getConfig( 'calendar_week_offset', 0 ) );
 
 /**
  * @package calendar
@@ -134,9 +136,9 @@ class Calendar extends LibertyContent {
 	/**
 	 * prepare ListHash to ensure errorfree usage
 	 * @param array pListHash hash of parameters for any getList() function
-	 * @return array the link to display the page.
+	 * @return void
 	**/
-	public function prepGetList( &$pListHash ) {
+	public static function prepGetList( &$pListHash ): void {
 		$pListHash['include_data'] = TRUE;
 		if( !empty( $pListHash['focus_date'] ) ) {
 			$calDates = $this->doRangeCalculations( $pListHash );
@@ -161,26 +163,25 @@ class Calendar extends LibertyContent {
 		$pListHash['max_records'] = 500;
 
 		LibertyContent::prepGetList( $pListHash );
-		return TRUE;
 	}
 
 	public function buildDay( $pDateHash ) {
 		global $gBitSystem, $gBitUser;
-		$focus = $this->mDate->getdate( $pDateHash['focus_date'], false, true );
+		$focus = $this->mDate->getdate( $pDateHash['focus_date'], false );
 
 		$ret = [];
 		if( $pDateHash['view_mode'] == 'day' ) {
 			// calculare what the visible day view range is
-			$day_start   = $gBitUser->mUserPrefs['calendar_day_start'] ?? $gBitSystem->getConfig( 'calendar_day_start', 0 );
-			$day_end     = $gBitUser->mUserPrefs['calendar_day_end'] ?? $gBitSystem->getConfig( 'calendar_day_end', 24 );
+			$day_start   = $gBitUser->mPrefs['calendar_day_start'] ?? $gBitSystem->getConfig( 'calendar_day_start', 0 );
+			$day_end     = $gBitUser->mPrefs['calendar_day_end'] ?? $gBitSystem->getConfig( 'calendar_day_end', 24 );
 			$start_time  = $this->mDate->mktime( 0, 0, 0, $focus['mon'], $focus['mday'], $focus['year'] ) + ( 60 * 60 * $day_start );
 			$stop_time   = $this->mDate->mktime( 0, 0, 0, $focus['mon'], $focus['mday'] + 1, $focus['year'] ) - ( 60 * 60 * ( 24 - $day_end ) );
 			$hours_count = ( $stop_time - $start_time ) / ( 60 * 60 );
 
 			// allow for custom time intervals
-			$hour_fraction = !empty( $gBitUser->mUserPrefs['calendar_hour_fraction'] ) ? $gBitUser->mUserPrefs['calendar_hour_fraction'] : $gBitSystem->getConfig( 'calendar_hour_fraction', 1 );
+			$hour_fraction = !empty( $gBitUser->mPrefs['calendar_hour_fraction'] ) ? $gBitUser->mPrefs['calendar_hour_fraction'] : $gBitSystem->getConfig( 'calendar_hour_fraction', 1 );
 			$row_count = $hours_count * $hour_fraction;
-			$start_time_info = $this->mDate->getdate( $start_time, false, true );
+			$start_time_info = $this->mDate->getdate( $start_time, false );
 			$hour = $start_time_info['hours'] - 1;
 			$mins = 0;
 			for( $i = 0; $i < $row_count; $i++ ) {
@@ -205,8 +206,8 @@ class Calendar extends LibertyContent {
 	 **/
 	public function buildCalendarNavigation( $pDateHash ) {
 		global $gBitUser, $gBitSystem;
-		$today = $this->mDate->getdate( time(), false, true );
-		$focus = $this->mDate->getdate( $pDateHash['focus_date'], false, true );
+		$today = $this->mDate->getdate( time(), false );
+		$focus = $this->mDate->getdate( $pDateHash['focus_date'], false );
 
 		$ret = [
 			'before'             => [
@@ -243,12 +244,12 @@ class Calendar extends LibertyContent {
 	public function buildMonth( $pDateHash ) {
 		global $gBitSmarty;
 
-		$focus = $this->mDate->getdate( $pDateHash['focus_date'], false, true );
+		$focus = $this->mDate->getdate( $pDateHash['focus_date'], false );
 
 		$prev_month_end	  = $this->mDate->gmmktime( 0, 0, 0, $focus['mon'],     0, $focus['year'] );
 		$next_month_begin = $this->mDate->gmmktime( 0, 0, 0, $focus['mon'] + 1, 1, $focus['year'] );
 
-		$prev_month_end_info = $this->mDate->getdate( $prev_month_end, false, true );
+		$prev_month_end_info = $this->mDate->getdate( $prev_month_end, false );
 		$prev_month = $prev_month_end_info['mon'];
 		$prev_month_year = $prev_month_end_info['year'];
 
