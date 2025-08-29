@@ -1,11 +1,13 @@
 <?php
-$hourValues = array(  1,  2,  3,  4,  6, 12 );
-$hourOutput = array( 60, 30, 20, 15, 10, 5  );
+use Bitweaver\KernelTools;
+
+$hourValues = [ 1, 2, 3, 4, 6, 12 ];
+$hourOutput = [ 60, 30, 20, 15, 10, 5 ];
 $gBitSmarty->assign( 'hourValues', $hourValues );
 $gBitSmarty->assign( 'hourOutput', $hourOutput );
 
-$firstDayValues = array( 7, 6, 5, 4, 3, 2, 1 );
-$firstDayOutput = array( tra( "Monday" ), tra( "Tuesday" ), tra( "Wednesday" ), tra( "Thursday" ), tra( "Friday" ), tra( "Saturday" ), tra( "Sunday" ) );
+$firstDayValues = [ 7, 6, 5, 4, 3, 2, 1 ];
+$firstDayOutput = [ KernelTools::tra( "Monday" ), KernelTools::tra( "Tuesday" ), KernelTools::tra( "Wednesday" ), KernelTools::tra( "Thursday" ), KernelTools::tra( "Friday" ), KernelTools::tra( "Saturday" ), KernelTools::tra( "Sunday" ) ];
 $gBitSmarty->assign( 'firstDayValues', $firstDayValues );
 $gBitSmarty->assign( 'firstDayOutput', $firstDayOutput );
 
@@ -14,21 +16,21 @@ $gBitSmarty->assign( 'dayStart', $dayStart );
 $dayEnd = range( 24, 13 );
 $gBitSmarty->assign( 'dayEnd', $dayEnd );
 
-$calendarValues = array(
+$calendarValues = [
 	'calendar_week_offset',
 	'calendar_hour_fraction',
 	'calendar_day_start',
 	'calendar_day_end',
-);
-$calendarChecks = array(
+];
+$calendarChecks = [
 	'calendar_user_prefs',
 	'calendar_ajax_popups',
-);
+];
 
 // This has to come after the set since we are loading what is selected.
-$contentDefaults = array();
-$calendarTypeDefaults = array();
-$calendarTypesSelected = array();
+$contentDefaults = [];
+$calendarTypeDefaults = [];
+$calendarTypesSelected = [];
 global $gLibertySystem;
 foreach( $gLibertySystem->mContentTypes as $cType ) {
 	$option = 'calendar_default_'.$cType['content_type_guid'];
@@ -59,5 +61,3 @@ foreach( $calendarTypeDefaults as $key => $val) {
 	}
 }
 $gBitSmarty->assign('calendarTypesSelected', $calendarTypesSelected);
-
-?>
