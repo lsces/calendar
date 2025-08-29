@@ -8,7 +8,9 @@
 /**
  * Required setup
  */
-include_once( CALENDAR_PKG_PATH.'Calendar.php' );
+use Bitweaver\Calendar\Calendar;
+global $gBitSmarty;
+
 $cal = new Calendar();
 
 // set up the todate
@@ -26,13 +28,12 @@ if( !empty( $_REQUEST['todate'] ) ) {
 	$_REQUEST["todate"] = $_SESSION['calendar']['focus_date'];
 }
 
-$calHash = array(
+$calHash = [
 	'focus_date' => $_SESSION['calendar']['focus_date'],
-	'view_mode' => 'month',
-);
+	'view_mode'  => 'month',
+];
 
 $cal->setupCalendar(FALSE);
 
-$_template->tpl_vars['modCalNavigation'] = new Smarty_variable( $cal->buildCalendarNavigation( $calHash ) );
-$_template->tpl_vars['modCalMonth'] = new Smarty_variable( $calMonth = $cal->buildMonth( $calHash ) );
-?>
+$gBitSmarty->assign( 'modCalNavigation', $cal->buildCalendarNavigation( $calHash ) );
+$gBitSmarty->assign( 'modCalMonth', $calMonth = $cal->buildMonth( $calHash ) );
