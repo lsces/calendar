@@ -1,5 +1,8 @@
 <?php
 
+use Bitweaver\Calendar\Calendar;
+use Bitweaver\KernelTools;
+
 // $Header$
 
 // Copyright( c ) 2002-2003, Luis Argerich, Garland Foster, Eduardo Polidor, et. al.
@@ -7,9 +10,7 @@
 // Licensed under the GNU LESSER GENERAL PUBLIC LICENSE. See http://www.gnu.org/copyleft/lesser.html for details.
 require_once( '../kernel/includes/setup_inc.php' );
 
-include_once( CALENDAR_PKG_PATH.'Calendar.php' );
-
-$gBitSystem->isPackageActive( 'calendar', TRUE );
+$gBitSystem->isPackageActive( 'calendar', true );
 
 $gBitSystem->verifyPermission( 'p_calendar_view' );
 
@@ -32,6 +33,4 @@ if( $gBitUser->hasPermission("p_calendar_view_changes") && $_SESSION['calendar']
 // Build the calendar
 $gCalendar->buildCalendar($listHash, $_SESSION['calendar']);
 // And display it with a nice title.
-$gCalendar->display(tra('Calendar'));
-
-?>
+$gCalendar->display(KernelTools::tra('Calendar'));
