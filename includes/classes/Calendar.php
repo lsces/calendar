@@ -206,6 +206,7 @@ class Calendar extends LibertyContent {
 	 **/
 	public function buildCalendarNavigation( $pDateHash ) {
 		global $gBitUser, $gBitSystem;
+		if ( empty( $this->mDate ) ) return [];
 		$today = $this->mDate->getdate( time(), false );
 		$focus = $this->mDate->getdate( $pDateHash['focus_date'], false );
 
@@ -243,6 +244,7 @@ class Calendar extends LibertyContent {
 	 **/
 	public function buildMonth( $pDateHash ) {
 		global $gBitSmarty;
+		if ( empty( $this->mDate ) ) return [];
 
 		$focus = $this->mDate->getdate( $pDateHash['focus_date'], false );
 
