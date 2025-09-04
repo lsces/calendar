@@ -24,7 +24,7 @@ if( !empty( $_REQUEST['todate'] ) ) {
 } elseif( !empty( $_SESSION['calendar']['focus_date'] ) ) {
 	$_REQUEST["todate"] = $_SESSION['calendar']['focus_date'];
 } else {
-	$_SESSION['calendar']['focus_date'] = $cal->mDate->gmmktime( 0, 0, 0, $cal->mDate->date( 'm' ), $cal->mDate->date( 'd' ), $cal->mDate->date( 'Y' ) );
+	$_SESSION['calendar']['focus_date'] = ''; // $cal->mDate->gmmktime( 0, 0, 0, $cal->mDate->date( 'm' ), $cal->mDate->date( 'd' ), $cal->mDate->date( 'Y' ) );
 	$_REQUEST["todate"] = $_SESSION['calendar']['focus_date'];
 }
 
