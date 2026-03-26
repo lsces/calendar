@@ -117,7 +117,7 @@
 					{/if}
 				</table>
 			{/jstab}
-			{if $gBitUser->hasPermission('p_calendar_view') && !empty($calContentTypes)}
+			{if $gBitUser->hasPermission('p_calendar_view') and !empty($calContentTypes)}
 				{jstab title="Display Options"}
 					{include file="bitpackage:calendar/calendar_options_inc.tpl"}
 				{/jstab}
