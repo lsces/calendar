@@ -47,7 +47,7 @@
 								</tr>
 								<tr>
 									<td class="calitems {if $day.day eq $navigation.display_focus_date} current{/if}{if $day.day eq $navigation.today} highlight{/if} {cycle values="odd,even"}">
-										{if $day.day|cal_date_format:"%m" eq $navigation.focus_month or $smarty.session.calendar.view_mode eq "week"}
+										{if $day.day|cal_date_format:"%m" eq $navigation.focus_month || $smarty.session.calendar.view_mode eq "week"}
 											{foreach from=$day.items item=item}
 												{assign var=over value=$item.over}
 												{capture assign=itemurl}{$smarty.const.CALENDAR_PKG_URL}box.php?content_id={$item.content_id}{/capture}
@@ -87,7 +87,7 @@
 									{/if}
 
 									<td class="calitems {if $day.day eq $navigation.display_focus_date} current{/if}{if $day.day eq $navigation.today} highlight{/if} {cycle values="odd,even"}">
-										{if $day.day|cal_date_format:"%m" eq $navigation.focus_month or $smarty.session.calendar.view_mode eq "week"}
+										{if $day.day|cal_date_format:"%m" eq $navigation.focus_month || $smarty.session.calendar.view_mode eq "week"}
 											<div class="calnumber">
 												<a href="{$baseCalendarUrl}?view_mode=day&amp;todate={$day.day}&amp;{$url_string}">{$day.day|cal_date_format:"%d"}</a>
 											</div>
@@ -117,7 +117,7 @@
 					{/if}
 				</table>
 			{/jstab}
-			{if $gBitUser->hasPermission('p_calendar_view') and !empty($calContentTypes)}
+			{if $gBitUser->hasPermission('p_calendar_view') && !empty($calContentTypes)}
 				{jstab title="Display Options"}
 					{include file="bitpackage:calendar/calendar_options_inc.tpl"}
 				{/jstab}

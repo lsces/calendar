@@ -35,7 +35,7 @@
 		{/forminput}
 	</div>
 
-	{if $gBitUser->isAdmin() and $page eq "calendar"}
+	{if $gBitUser->isAdmin() && $page eq "calendar"}
 		<div class="form-group">
 			{formlabel label="Individual Calendar Settings" for="calendar_user_prefs"}
 			{forminput}
