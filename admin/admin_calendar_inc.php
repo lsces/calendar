@@ -51,7 +51,7 @@ if( function_exists( 'simple_set_value' ) && $gBitUser->isAdmin() && !empty( $_R
 	}
 	foreach( $calendarTypeDefaults as $key => $val ) {
 		simple_set_toggle_array( 'defaultTypes', $key, CALENDAR_PKG_NAME);
-	}	
+	}
 }
 
 // Build the list of what is selected. Has to come AFTER the set.

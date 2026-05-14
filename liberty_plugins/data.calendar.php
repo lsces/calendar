@@ -47,39 +47,39 @@ function data_calendar( $data, $params ) {
 
 	 if ($gBitSystem->isPackageActive('calendar')) {
 		 $offset = $gBitSystem->get_display_offset();
-		 $bitDate = new BitDate($offset);	
-		 
+		 $bitDate = new BitDate($offset);
+
 		 $time = $bitDate->getUTCTime();
 		 $date = $bitDate->getDate($time, true);
-		 
+
 		 $month = $date['mon'];
 		 $year = $date['year'];
 		 $month_day = $date['mday'];
 		 $month_name = $date['month'];
-		 
+
 		 // reset time so we can make today look different in template with compare
 		 $time = $bitDate->mktime(0, 0, 0, $month, $month_day, $year);
-		 
+
 		 $last_time = $bitDate->mktime(0, 0, 0, $month, 0, $year);
 		 $next_time = $bitDate->mktime(0, 0, 0, $month + 1, 1, $year);
 		 $last = $bitDate->getDate($last_time);
 		 $next = $bitDate->getDate($next_time);
-		 
+
 		 $days = [];
 		 for ($i = 2; $i < 9; $i++) {
 			 // Start from known sunday.
 			 $timestamp = $bitDate->mktime(0, 0, 0, 1, $i, 2000);
 			 $days[] = $bitDate->strftime('%a', $timestamp);
 		 }
-		 
+
 		 // Build a two-dimensional array of UNIX timestamps.
 		 $calendar = [];
-		 
+
 		 // Start with last days of previous month.
 		 $week = [];
 		 $month_begin = $bitDate->mktime(0, 0, 0, $month, 1, $year);
 		 $month_begin_dow = strftime('%w', $month_begin);
-		 
+
 		 $days_last_month = $bitDate->daysInMonth($last['month'], $last['year']);
 		 for ($dow = 0;
 			  $dow < $month_begin_dow;
@@ -89,13 +89,13 @@ function data_calendar( $data, $params ) {
 			 $d['dim'] = true;
 			 $week[] = $d;
 		 }
-		 
+
 		 // Do this month
 		 $days_in_month = $bitDate->daysInMonth($month, $year);
 		 for ($i = 1; $i <= $days_in_month; $i++) {
 			 if ($dow == 7) {
 				 $calendar[] = $week;
-				 
+
 				 // Done with row
 				 $dow = 0;
 				 unset($week);
@@ -111,7 +111,7 @@ function data_calendar( $data, $params ) {
 			 unset($d['today']);
 			 $dow++;
 		}
-		 
+
 		 // Do the last month.
 		 for ($i = 1; $dow < 7; $i++, $dow++) {
 			 $d['time'] = $bitDate->mktime(0, 0, 0, $month + 1, $i, $year);
@@ -136,6 +136,6 @@ function data_calendar( $data, $params ) {
 
 		 return $gBitSmarty->fetch('bitpackage:calendar/minical.tpl');
 	 }
-	 
+
 	 return '<div class="error">Calendar Package Not Active</div>';
 }

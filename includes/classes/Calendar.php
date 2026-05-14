@@ -12,6 +12,7 @@
  * Required setup
  */
 namespace Bitweaver\Calendar;
+
 use Bitweaver\BitDate;
 use Bitweaver\KernelTools;
 use Bitweaver\Liberty\LibertyContent;
@@ -83,7 +84,7 @@ class Calendar extends LibertyContent {
 			$item['created'] += $this->display_offset;
 			$item['last_modified'] += $this->display_offset;
 			$item['event_time'] += $this->display_offset;
- 			$item['parsed'] = self::parseDataHash( $item );
+			$item['parsed'] = self::parseDataHash( $item );
 			$dstart = $this->mDate->gmmktime( 0, 0, 0, $this->mDate->date( "m", $item['timestamp'], true ), $this->mDate->date( "d", $item['timestamp'], true ), $this->mDate->date( "Y", $item['timestamp'], true ) );
 			$ret[$dstart][] = $item;
 		}
