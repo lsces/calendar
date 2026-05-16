@@ -1,8 +1,4 @@
 <?php
-
-use Bitweaver\BitDate;
-use Bitweaver\KernelTools;
-
 /**
  * @version  $Revision$
  * @package  liberty
@@ -22,6 +18,11 @@ use Bitweaver\KernelTools;
 // | by: StarRider <starrrider@users.sourceforge.net>
 // +----------------------------------------------------------------------+
 // $Id$
+
+namespace Bitweaver\Liberty;
+
+use Bitweaver\BitDate;
+use Bitweaver\KernelTools;
 
 /**
  * definitions
