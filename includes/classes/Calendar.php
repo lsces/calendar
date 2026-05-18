@@ -461,7 +461,6 @@ class Calendar extends LibertyContent {
 		$this->setupDayNames();
 
 		if ($gBitSystem->isFeatureActive('calendar_ajax_popups')) {
-			$gBitThemes->loadAjax( 'mochikit' );
 		}
 
 		// TODO: make this a pref
