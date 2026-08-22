@@ -30,7 +30,7 @@ class Calendar extends LibertyContent {
 	public $display_offset;
 	public $mDate;
 
-	public function Calendar() {
+	public function __construct() {
 		parent::__construct();
 		global $gBitUser;
 		$this->mDate = new BitDate(0);
