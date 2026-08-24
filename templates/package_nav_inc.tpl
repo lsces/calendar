@@ -27,17 +27,20 @@
 
 	<ul class="pagination">
 		<li><a href="{$baseCalendarUrl}&amp;todate={$smarty.now}" title="{$navigation.today|bit_long_date} {$navigation.tz_flag}">{tr}Today{/tr}</a></li>
-		<li>
-			{* <span>, not <a> - a form control can't nest inside an anchor, and
-			   Bootstrap's pagination CSS already styles li>span the same as
-			   li>a for exactly this reason (see kernel/templates/pagination.tpl's
-			   own current-page <span> for the same convention). *}
-			<span>
-				<form method="get" action="{$baseCalendarUrl|regex_replace:'/\?.*/':''}" style="display:inline">
-					<input type="hidden" name="pkg" value="{$smarty.request.pkg|escape}" />
-					<input type="date" name="todate" value="{$navigation.focus_date|date_format:'%Y-%m-%d'}" onchange="this.form.submit()" title="{tr}Jump to date{/tr}" />
-				</form>
-			</span>
+		<li class="calnav-picker">
+			{* Plain form as the li's direct child, no <span> wrapper - a <span>
+			   here picks up Bootstrap's .pagination>li>span rule, which sets
+			   position:relative alongside float:left, and that position:relative
+			   ancestor is what was pushing the native date-picker's popup out of
+			   place (rendering over the bar and the grid's day-header row below
+			   instead of anchored under the input). .calnav-picker below gives
+			   this li its own float:left (needed to keep it inline with its
+			   siblings - without any float here it drops to the end of the
+			   set) without the position:relative side effect. *}
+			<form method="get" action="{$baseCalendarUrl|regex_replace:'/\?.*/':''}">
+				<input type="hidden" name="pkg" value="{$smarty.request.pkg|escape}" />
+				<input type="date" name="todate" value="{$navigation.focus_date|date_format:'%Y-%m-%d'}" onchange="this.form.submit()" title="{tr}Jump to date{/tr}" />
+			</form>
 		</li>
 		<li class="{if $viewMode eq 'day'}active{/if}"><a href="{$baseCalendarUrl}&amp;view_mode=day&amp;todate={$navigation.focus_date}">{biticon ipackage=calendar iname=day iexplain=Day}</a></li>
 		<li class="{if $viewMode eq 'week'}active{/if}"><a href="{$baseCalendarUrl}&amp;view_mode=week&amp;todate={$navigation.focus_date}">{biticon ipackage=calendar iname=week iexplain=Week}</a></li>
