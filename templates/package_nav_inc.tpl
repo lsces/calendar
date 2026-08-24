@@ -19,10 +19,10 @@
    the three groups below directly, no float/clear classes needed. *}
 <div class="calnav">
 	<ul class="pagination">
-		<li><a href="{$baseCalendarUrl}&amp;todate={$navigation.before.year}"  title="{$navigation.before.year|bit_long_date}">&laquo; {tr}Year{/tr}</a></li>
-		<li><a href="{$baseCalendarUrl}&amp;todate={$navigation.before.month}" title="{$navigation.before.month|bit_long_date}">&laquo; {tr}Month{/tr}</a></li>
-		<li><a href="{$baseCalendarUrl}&amp;todate={$navigation.before.week}"  title="{$navigation.before.week|bit_long_date}">&laquo; {tr}Week{/tr}</a></li>
-		<li><a href="{$baseCalendarUrl}&amp;todate={$navigation.before.day}"   title="{$navigation.before.day|bit_long_date}">&laquo; {tr}Day{/tr}</a></li>
+		<li><a href="{$baseCalendarUrl}&amp;todate={$navigation.before.year}"  title="{$navigation.before.year|bit_long_date}"><span class="calnav-arrow">&laquo;</span> {tr}Year{/tr}</a></li>
+		<li><a href="{$baseCalendarUrl}&amp;todate={$navigation.before.month}" title="{$navigation.before.month|bit_long_date}"><span class="calnav-arrow">&laquo;</span> {tr}Month{/tr}</a></li>
+		<li><a href="{$baseCalendarUrl}&amp;todate={$navigation.before.week}"  title="{$navigation.before.week|bit_long_date}"><span class="calnav-arrow">&laquo;</span> {tr}Week{/tr}</a></li>
+		<li><a href="{$baseCalendarUrl}&amp;todate={$navigation.before.day}"   title="{$navigation.before.day|bit_long_date}"><span class="calnav-arrow">&laquo;</span> {tr}Day{/tr}</a></li>
 	</ul>
 
 	<ul class="pagination">
@@ -49,10 +49,10 @@
 	</ul>
 
 	<ul class="pagination">
-		<li><a href="{$baseCalendarUrl}&amp;todate={$navigation.after.day}"   title="{$navigation.after.day|bit_long_date}">{tr}Day{/tr} &raquo;</a></li>
-		<li><a href="{$baseCalendarUrl}&amp;todate={$navigation.after.week}"  title="{$navigation.after.week|bit_long_date}">{tr}Week{/tr} &raquo;</a></li>
-		<li><a href="{$baseCalendarUrl}&amp;todate={$navigation.after.month}" title="{$navigation.after.month|bit_long_date}">{tr}Month{/tr} &raquo;</a></li>
-		<li><a href="{$baseCalendarUrl}&amp;todate={$navigation.after.year}"  title="{$navigation.after.year|bit_long_date}">{tr}Year{/tr} &raquo;</a></li>
+		<li><a href="{$baseCalendarUrl}&amp;todate={$navigation.after.day}"   title="{$navigation.after.day|bit_long_date}">{tr}Day{/tr} <span class="calnav-arrow">&raquo;</span></a></li>
+		<li><a href="{$baseCalendarUrl}&amp;todate={$navigation.after.week}"  title="{$navigation.after.week|bit_long_date}">{tr}Week{/tr} <span class="calnav-arrow">&raquo;</span></a></li>
+		<li><a href="{$baseCalendarUrl}&amp;todate={$navigation.after.month}" title="{$navigation.after.month|bit_long_date}">{tr}Month{/tr} <span class="calnav-arrow">&raquo;</span></a></li>
+		<li><a href="{$baseCalendarUrl}&amp;todate={$navigation.after.year}"  title="{$navigation.after.year|bit_long_date}">{tr}Year{/tr} <span class="calnav-arrow">&raquo;</span></a></li>
 	</ul>
 </div>
 {/strip}
