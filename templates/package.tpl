@@ -15,7 +15,6 @@
 		{include file="bitpackage:calendar/package_nav_inc.tpl"}
 
 		<table class="data caltable {$viewMode}">
-			<caption>{tr}Selection: {$navigation.focus_date|cal_date_format:"%A %d of %B, %Y %Z"}{/tr}</caption>
 			{if $viewMode eq 'day'}
 				<tr>
 					<th style="width:15%;">{tr}Time{/tr}</th>

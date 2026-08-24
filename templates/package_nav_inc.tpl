@@ -29,11 +29,17 @@
 	<div class="calnav-center" style="display:table;margin:0 auto;">
 		<ul class="pagination" style="margin-bottom:0;">
 			<li><a href="{$baseCalendarUrl}&amp;todate={$smarty.now}" title="{$navigation.today|bit_long_date} {$navigation.tz_flag}">{tr}Today{/tr}</a></li>
-			<li style="border:none;padding:6px 8px;">
-				<form method="get" action="{$baseCalendarUrl|regex_replace:'/\?.*/':''}" style="display:inline">
-					<input type="hidden" name="pkg" value="{$smarty.request.pkg|escape}" />
-					<input type="date" name="todate" value="{$navigation.focus_date|date_format:'%Y-%m-%d'}" onchange="this.form.submit()" title="{tr}Jump to date{/tr}" />
-				</form>
+			<li>
+				{* <span>, not <a> - a form control can't nest inside an anchor, and
+				   Bootstrap's pagination CSS already styles li>span the same as
+				   li>a for exactly this reason (see kernel/templates/pagination.tpl's
+				   own current-page <span> for the same convention). *}
+				<span>
+					<form method="get" action="{$baseCalendarUrl|regex_replace:'/\?.*/':''}" style="display:inline">
+						<input type="hidden" name="pkg" value="{$smarty.request.pkg|escape}" />
+						<input type="date" name="todate" value="{$navigation.focus_date|date_format:'%Y-%m-%d'}" onchange="this.form.submit()" title="{tr}Jump to date{/tr}" />
+					</form>
+				</span>
 			</li>
 			<li class="{if $viewMode eq 'day'}active{/if}"><a href="{$baseCalendarUrl}&amp;view_mode=day&amp;todate={$navigation.focus_date}">{biticon ipackage=calendar iname=day iexplain=Day}</a></li>
 			<li class="{if $viewMode eq 'week'}active{/if}"><a href="{$baseCalendarUrl}&amp;view_mode=week&amp;todate={$navigation.focus_date}">{biticon ipackage=calendar iname=week iexplain=Week}</a></li>
