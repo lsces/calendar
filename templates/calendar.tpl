@@ -51,8 +51,14 @@
 								</tr>
 								<tr>
 									<td class="calitems {if $day.day eq $navigation.display_focus_date} current{/if}{if $day.day eq $navigation.today} highlight{/if} {cycle values="odd,even"}">
-										{if $day.day|cal_date_format:"%m" eq $navigation.focus_month || $smarty.session.calendar.view_mode eq "week"}
-											{foreach from=$day.items item=item}
+										{* This branch only ever runs when view_mode is 'weeklist' - a focus_month gate
+										   makes no sense here at all (a week view has no "spillover" concept, every
+										   visible day is equally in range by definition, same reasoning "week" mode's
+										   own check below already applies) - the `|| ... eq "week"` copied from that
+										   branch was dead code (never true here), silently hiding real items on any
+										   day that rolled into an adjacent month. Same bug as package.tpl's copy of
+										   this same markup - found+fixed there first, mirrored here 2026-08-26. *}
+										{foreach from=$day.items item=item}
 												{if $item.cell_html}
 													{$item.cell_html}
 												{else}
@@ -65,9 +71,6 @@
 													</div>
 												{/if}
 											{/foreach}
-										{else}
-											&nbsp;
-										{/if}
 									</td>
 								</tr>
 							{/foreach}
