@@ -46,6 +46,17 @@
 		<li class="{if $viewMode eq 'week'}active{/if}"><a href="{$baseCalendarUrl}&amp;view_mode=week&amp;todate={$navigation.focus_date}">{biticon ipackage=calendar iname=week iexplain=Week}</a></li>
 		<li class="{if $viewMode eq 'weeklist'}active{/if}"><a href="{$baseCalendarUrl}&amp;view_mode=weeklist&amp;todate={$navigation.focus_date}">{biticon ipackage=calendar iname=weeklist iexplain=Weeklist}</a></li>
 		<li class="{if $viewMode eq 'month'}active{/if}"><a href="{$baseCalendarUrl}&amp;view_mode=month&amp;todate={$navigation.focus_date}">{biticon ipackage=calendar iname=month iexplain=Month}</a></li>
+		{if $extraLabel}
+			<li class="bitnav-picker">
+				<form method="get" action="{$baseCalendarUrl|regex_replace:'/\?.*/':''}">
+					<input type="hidden" name="pkg" value="{$smarty.request.pkg|escape}" />
+					<input type="hidden" name="view_mode" value="{$viewMode|escape}" />
+					<input type="hidden" name="todate" value="{$navigation.focus_date}" />
+					<input type="hidden" name="show_extra" value="0" />
+					<label><input type="checkbox" name="show_extra" value="1"{if $showExtra} checked="checked"{/if} onchange="this.form.submit()" /> {$extraLabel|escape}</label>
+				</form>
+			</li>
+		{/if}
 	</ul>
 
 	<ul class="pagination">

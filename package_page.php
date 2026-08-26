@@ -33,9 +33,14 @@ $gBitSystem->verifyPermission( 'p_calendar_view' );
 // Small fixed allowlist, not a generic "any content type" chooser - this
 // page exists to give a specific package a direct, undecorated calendar
 // entry point, not to become a second general-purpose calendar chooser.
+// 'food' shows the day-summary tile (FoodDay, one per day) by default now rather
+// than every meal separately - extra_guid/extra_label is an optional second type
+// a page can let the user layer on top via a checkbox (see the show_extra handling
+// below), not something every pkg needs.
 $pkgMap = [
-	'health' => [ 'guid' => 'healthday',    'title' => KernelTools::tra( 'Health Calendar' ) ],
-	'food'   => [ 'guid' => 'foodassembly', 'title' => KernelTools::tra( 'Food Calendar' ) ],
+	'health' => [ 'guid' => 'healthday', 'title' => KernelTools::tra( 'Health Calendar' ) ],
+	'food'   => [ 'guid' => 'foodday',   'title' => KernelTools::tra( 'Food Calendar' ),
+	              'extra_guid' => 'foodassembly', 'extra_label' => KernelTools::tra( 'Show individual meals' ) ],
 ];
 $pkg = $_REQUEST['pkg'] ?? '';
 if( !isset( $pkgMap[$pkg] ) ) {
@@ -51,7 +56,23 @@ if( !isset( $_SESSION[$sessionKey] ) ) {
 $gCalendar->processRequestHash( $_REQUEST, $_SESSION[$sessionKey] );
 
 $listHash = $_SESSION[$sessionKey];
-$listHash['content_type_guid'] = [ $pkgMap[$pkg]['guid'] ];
+$guids = [ $pkgMap[$pkg]['guid'] ];
+
+// Persisted the same way view_mode is (in this page's own per-package session
+// slot) - the checkbox's hidden-then-real input pair (see package_nav_inc.tpl)
+// always sends show_extra on submit (0 or 1), so isset() alone reliably tells a
+// real submission apart from a fresh/reloaded page with no submission at all.
+$showExtra = false;
+if( !empty( $pkgMap[$pkg]['extra_guid'] ) ) {
+	if( isset( $_REQUEST['show_extra'] ) ) {
+		$_SESSION[$sessionKey]['show_extra'] = !empty( $_REQUEST['show_extra'] );
+	}
+	$showExtra = !empty( $_SESSION[$sessionKey]['show_extra'] );
+	if( $showExtra ) {
+		$guids[] = $pkgMap[$pkg]['extra_guid'];
+	}
+}
+$listHash['content_type_guid'] = $guids;
 
 $gCalendar->buildCalendar( $listHash, $_SESSION[$sessionKey] );
 
@@ -64,5 +85,7 @@ $gCalendar->setupCalendar( false );
 $gBitSmarty->assign( 'baseCalendarUrl', CALENDAR_PKG_URL.'package_page.php?pkg='.$pkg );
 $gBitSmarty->assign( 'viewMode',        $_SESSION[$sessionKey]['view_mode'] ?? 'month' );
 $gBitSmarty->assign( 'pkgTitle',        $pkgMap[$pkg]['title'] );
+$gBitSmarty->assign( 'extraLabel',      $pkgMap[$pkg]['extra_label'] ?? null );
+$gBitSmarty->assign( 'showExtra',       $showExtra );
 
 $gBitSystem->display( 'bitpackage:calendar/package.tpl', $pkgMap[$pkg]['title'], [ 'display_mode' => 'display' ] );
