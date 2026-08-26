@@ -101,11 +101,18 @@ class Calendar extends LibertyContent {
 			$view_start = $this->mDate->gmmktime( 0, 0, 0, $focus['mon'],     1, $focus['year'] );
 			$view_end   = $this->mDate->gmmktime( 0, 0, 0, $focus['mon'] + 1, 1, $focus['year'] ) - 1;
 		} elseif( $pDateHash['view_mode'] == 'week' or $pDateHash['view_mode'] == 'weeklist') {
-			$wd = $focus['wday'] == 0 ? 7 + WEEK_OFFSET : $focus['wday'] + WEEK_OFFSET;
-			// if we are moving out from the selected week, move us back in
-			if( $wd > 7 ) {
-				$wd -= 7;
-			}
+			// Days back from focus_date to this week's start, in the SAME WEEK_OFFSET
+			// convention buildMonth()/setupDayNames() use (0 = Monday-start, matching
+			// their base Monday-first day-name array before any rotation - not the
+			// "Sunday=0" assumption the old formula made, which silently fetched a
+			// data window one full day earlier than the displayed grid and always
+			// dropped the week's actual last day. $focus['wday'] is native PHP wday
+			// (0=Sunday..6=Saturday); (wday+6)%7 converts that to a Monday-first
+			// index (0=Monday..6=Sunday), then +WEEK_OFFSET shifts to match whichever
+			// day the grid actually starts on. Found + fixed 2026-08-26 - see
+			// project_calendar_week_off_by_one memory for the empirical trace
+			// (Sunday's data silently missing from every populated week tested).
+			$wd = ( $focus['wday'] + 6 + WEEK_OFFSET ) % 7;
 
 			$view_start = $this->mDate->gmmktime( 0, 0, 0, $focus['mon'], $focus['mday'] - $wd, $focus['year'] );
 			$view_end   = $this->mDate->gmmktime( 0, 0, 0, $focus['mon'], $focus['mday'] - $wd + 7, $focus['year'] ) - 1;
