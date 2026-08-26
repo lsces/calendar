@@ -393,9 +393,13 @@ class Calendar extends LibertyContent {
 
 		$bitEvents = [];
 		if ( !empty( $pListHash['content_type_guid'] ) ) {
-			// Verify that the type is still active
+			// Verify that the type is still active - also drops a guid that isn't
+			// registered at all (e.g. a stored calendar_default_guids preference
+			// pointing at a content type since removed), which otherwise passed
+			// null straight into isPackageActive()/strtoupper() further down.
 			foreach ( $pListHash['content_type_guid'] as $index => $type ) {
-				if ( !$gBitSystem->isPackageActive( $gLibertySystem->mContentTypes[$type]['handler_package'] ) ) {
+				if ( empty( $gLibertySystem->mContentTypes[$type]['handler_package'] )
+					|| !$gBitSystem->isPackageActive( $gLibertySystem->mContentTypes[$type]['handler_package'] ) ) {
 					unset( $pListHash['content_type_guid'][$index] );
 				}
 				if ( !empty( $pListHash['content_type_guid'] ) ) {
