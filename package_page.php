@@ -22,6 +22,7 @@
 namespace Bitweaver\Calendar;
 
 use Bitweaver\KernelTools;
+use Bitweaver\Food\FoodDay;
 
 require_once '../kernel/includes/setup_inc.php';
 
@@ -33,14 +34,23 @@ $gBitSystem->verifyPermission( 'p_calendar_view' );
 // Small fixed allowlist, not a generic "any content type" chooser - this
 // page exists to give a specific package a direct, undecorated calendar
 // entry point, not to become a second general-purpose calendar chooser.
-// TEMPORARY 2026-08-26: 'food' reverted to foodassembly (every meal, one cell
-// each) - a FoodDay day-summary redesign is mid-flight (reusing healthday's
-// own rows, no new storage - see project_food_day_summary_redesign memory)
-// but not finished; this keeps the page working in the meantime. The
-// extra_guid/show_extra checkbox mechanism below stays in place either way.
+// 'food' shows the FoodDay day-summary tile (one cell per day) by default -
+// every meal separately was the original "too congested" month/week complaint.
+// FoodDay isn't a real content type in the usual sense (see its own docblock -
+// no liberty_content row for any day, computed fresh on every request) but its
+// *type metadata* is registered the normal way so Calendar::getEvents() can
+// discover it generically (its own method_exists('getContentList') check,
+// zero food-specific code there). register() here is what seeds that the very
+// first time - after that it persists in liberty_content_types like any other
+// type and this call is just a cheap no-op. extra_guid/extra_label is an
+// optional second type a page can let the user layer on top via a checkbox
+// (see the show_extra handling below), not something every pkg needs - health
+// has none configured.
+FoodDay::register();
 $pkgMap = [
-	'health' => [ 'guid' => 'healthday',    'title' => KernelTools::tra( 'Health Calendar' ) ],
-	'food'   => [ 'guid' => 'foodassembly', 'title' => KernelTools::tra( 'Food Calendar' ) ],
+	'health' => [ 'guid' => 'healthday', 'title' => KernelTools::tra( 'Health Calendar' ) ],
+	'food'   => [ 'guid' => 'foodday',   'title' => KernelTools::tra( 'Food Calendar' ),
+	              'extra_guid' => 'foodassembly', 'extra_label' => KernelTools::tra( 'Show individual meals' ) ],
 ];
 $pkg = $_REQUEST['pkg'] ?? '';
 if( !isset( $pkgMap[$pkg] ) ) {

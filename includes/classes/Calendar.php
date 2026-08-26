@@ -393,17 +393,63 @@ class Calendar extends LibertyContent {
 
 		$bitEvents = [];
 		if ( !empty( $pListHash['content_type_guid'] ) ) {
+			// A registered type whose handler class implements its own
+			// getContentList() (opt-in, same additive pattern the existing
+			// getDayCellHtml() hook uses) supplies its own records directly
+			// instead of going through the generic SQL-against-liberty_content
+			// path below - e.g. FoodDay, which has no liberty_content rows at
+			// all. Nothing here needs to know FoodDay exists specifically; any
+			// future type can opt in the same way just by implementing the
+			// method and being registered (the type must already be registered
+			// for getContentClassName() to resolve it at all - see FoodDay's own
+			// register()/docblock for how it gets there).
+			$virtualClasses = [];
+			foreach ( $pListHash['content_type_guid'] as $type ) {
+				$class = $gLibertySystem->getContentClassName( $type );
+				// method_exists() alone isn't enough - every real LibertyContent
+				// subclass (FoodAssembly, HealthDay, ...) already inherits a
+				// getContentList(), just as a non-static instance method. Only a
+				// class that declares its own *static* override (FoodDay) opts into
+				// this path - reflection is the only reliable way to tell the two
+				// apart.
+				if ( $class && method_exists( $class, 'getContentList' )
+					&& (new \ReflectionMethod( $class, 'getContentList' ))->isStatic() ) {
+					$virtualClasses[$type] = $class;
+				}
+			}
+
+			// Virtual types never go through prepGetList()'s own time_limit_start/
+			// stop setup (that only happens inside getList(), which they bypass
+			// entirely) - compute it here instead, once, whenever at least one is
+			// present.
+			if ( $virtualClasses && empty( $pListHash['time_limit_start'] ) && !empty( $pListHash['focus_date'] ) ) {
+				$calDates = $this->doRangeCalculations( $pListHash );
+				$pListHash['time_limit_start'] = $calDates['view_start'] - $this->display_offset;
+				$pListHash['time_limit_stop']  = $calDates['view_end'] - $this->display_offset;
+			}
+
 			// Verify that the type is still active - also drops a guid that isn't
 			// registered at all (e.g. a stored calendar_default_guids preference
 			// pointing at a content type since removed), which otherwise passed
 			// null straight into isPackageActive()/strtoupper() further down.
 			foreach ( $pListHash['content_type_guid'] as $index => $type ) {
+				if ( !empty( $virtualClasses[$type] ) ) {
+					// Merged in (not just assigned) since a real type selected
+					// alongside it may already have entries on the same day.
+					foreach ( $virtualClasses[$type]::getContentList( $pListHash ) as $dstart => $items ) {
+						$bitEvents[$dstart] = array_merge( $bitEvents[$dstart] ?? [], $items );
+					}
+					unset( $pListHash['content_type_guid'][$index] );
+					continue;
+				}
 				if ( empty( $gLibertySystem->mContentTypes[$type]['handler_package'] )
 					|| !$gBitSystem->isPackageActive( $gLibertySystem->mContentTypes[$type]['handler_package'] ) ) {
 					unset( $pListHash['content_type_guid'][$index] );
 				}
-				if ( !empty( $pListHash['content_type_guid'] ) ) {
-					$bitEvents = $this->getList( $pListHash );
+			}
+			if ( !empty( $pListHash['content_type_guid'] ) ) {
+				foreach ( $this->getList( $pListHash ) as $dstart => $items ) {
+					$bitEvents[$dstart] = array_merge( $bitEvents[$dstart] ?? [], $items );
 				}
 			}
 		}
