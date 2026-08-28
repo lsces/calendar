@@ -6,7 +6,7 @@
    by user/sort here). Styled as Bootstrap pagination-bar buttons (same
    .pagination classes kernel/templates/pagination.tpl already uses
    sitewide) for visual consistency with every other button bar on the
-   site, rather than plain stacked text links - Lester's own call,
+   site, rather than plain stacked text links - the author's own call,
    2026-08-24, after an earlier single-letter-abbreviation pass turned out
    to be a mistake (full words needed instead). Today's date/selection isn't
    spelled out separately - the "Today" button and the date-picker input
