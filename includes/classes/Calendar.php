@@ -85,7 +85,7 @@ class Calendar extends LibertyContent {
 			$item['last_modified'] += $this->display_offset;
 			$item['event_time'] += $this->display_offset;
 			$item['parsed'] = self::parseDataHash( $item );
-			$dstart = $this->mDate->gmmktime( 0, 0, 0, $this->mDate->date( "m", $item['timestamp'], true ), $this->mDate->date( "d", $item['timestamp'], true ), $this->mDate->date( "Y", $item['timestamp'], true ) );
+			$dstart = $this->mDate->gmmktime( 0, 0, 0, (int)gmdate( 'n', $item['timestamp'] ), (int)gmdate( 'j', $item['timestamp'] ), (int)gmdate( 'Y', $item['timestamp'] ) );
 			$ret[$dstart][] = $item;
 		}
 	return $ret;
@@ -95,7 +95,15 @@ class Calendar extends LibertyContent {
 	* calculate the start and stop time for the current display page
 	**/
 	public function doRangeCalculations( $pDateHash ) {
-		$focus = $this->mDate->_getdate( $pDateHash['focus_date'], false, true );
+		// GMT-based decomposition, matching focus_date's own gmmktime() convention - native
+		// gmdate() calls replace BitDate::_getDate(), which only ever existed to cover a
+		// historical/pre-1970 date range this package never needs (see kernel/DATETIME.md).
+		$focus = [
+			'mon'  => (int)gmdate( 'n', $pDateHash['focus_date'] ),
+			'mday' => (int)gmdate( 'j', $pDateHash['focus_date'] ),
+			'year' => (int)gmdate( 'Y', $pDateHash['focus_date'] ),
+			'wday' => (int)gmdate( 'w', $pDateHash['focus_date'] ),
+		];
 
 		if( $pDateHash['view_mode'] == 'month' ) {
 			$view_start = $this->mDate->gmmktime( 0, 0, 0, $focus['mon'],     1, $focus['year'] );
@@ -121,10 +129,10 @@ class Calendar extends LibertyContent {
 			$view_end   = $this->mDate->gmmktime( 0, 0, 0, $focus['mon'], $focus['mday'] + 1, $focus['year'] ) - 1;
 		}
 
-		$start_year  = $this->mDate->date( 'Y', $view_start, true );
+		$start_year  = (int)gmdate( 'Y', $view_start );
 		if ( $start_year < 1902 ) {
-			$view_start_iso = $view_start  = $this->mDate->date( 'Y-m-d', $view_start, true );
-			$view_end_iso = $view_end  = $this->mDate->date( 'Y-m-d', $view_start, true );
+			$view_start_iso = $view_start  = gmdate( 'Y-m-d', $view_start );
+			$view_end_iso = $view_end  = gmdate( 'Y-m-d', $view_start );
 			$view_start = 0;
 			$view_end = 0;
 		}
@@ -175,7 +183,16 @@ class Calendar extends LibertyContent {
 
 	public function buildDay( $pDateHash ) {
 		global $gBitSystem, $gBitUser;
-		$focus = $this->mDate->getdate( $pDateHash['focus_date'], false );
+		// getdate() (no such BitDate method - only _getDate() exists) was an undefined-method
+		// fatal waiting to happen; not currently reachable from anywhere (nothing calls
+		// buildDay()), found auditing BitDate's adodb dependency. Native equivalent, matching
+		// the GMT convention doRangeCalculations() above already uses for the same shape of
+		// value.
+		$focus = [
+			'mon'  => (int)gmdate( 'n', $pDateHash['focus_date'] ),
+			'mday' => (int)gmdate( 'j', $pDateHash['focus_date'] ),
+			'year' => (int)gmdate( 'Y', $pDateHash['focus_date'] ),
+		];
 
 		$ret = [];
 		if( $pDateHash['view_mode'] == 'day' ) {
@@ -189,8 +206,8 @@ class Calendar extends LibertyContent {
 			// allow for custom time intervals
 			$hour_fraction = !empty( $gBitUser->mPrefs['calendar_hour_fraction'] ) ? $gBitUser->mPrefs['calendar_hour_fraction'] : $gBitSystem->getConfig( 'calendar_hour_fraction', 1 );
 			$row_count = $hours_count * $hour_fraction;
-			$start_time_info = $this->mDate->getdate( $start_time, false );
-			$hour = $start_time_info['hours'] - 1;
+			// local (not GMT) - matches the mktime() (not gmmktime()) call above building $start_time
+			$hour = (int)date( 'G', $start_time ) - 1;
 			$mins = 0;
 			for( $i = 0; $i < $row_count; $i++ ) {
 				if( !( $i % $hour_fraction ) ) {
@@ -215,8 +232,22 @@ class Calendar extends LibertyContent {
 	public function buildCalendarNavigation( $pDateHash ) {
 		global $gBitUser, $gBitSystem;
 		if ( empty( $this->mDate ) ) return [];
-		$today = $this->mDate->getdate( time(), false );
-		$focus = $this->mDate->getdate( $pDateHash['focus_date'], false );
+		// getdate() (no such BitDate method) fixed to a native GMT-based equivalent, matching
+		// the gmmktime() reconstruction below and this method's own "no DST info available"
+		// docblock warning - a non-GMT decomposition would have been wrong regardless of the
+		// undefined-method bug. See doRangeCalculations()'s matching comment.
+		$now = time();
+		$today = [
+			'mon'  => (int)gmdate( 'n', $now ),
+			'mday' => (int)gmdate( 'j', $now ),
+			'year' => (int)gmdate( 'Y', $now ),
+		];
+		$focus = [
+			'mon'  => (int)gmdate( 'n', $pDateHash['focus_date'] ),
+			'mday' => (int)gmdate( 'j', $pDateHash['focus_date'] ),
+			'year' => (int)gmdate( 'Y', $pDateHash['focus_date'] ),
+			0      => $pDateHash['focus_date'],
+		];
 
 		$ret = [
 			'before'             => [
@@ -254,12 +285,22 @@ class Calendar extends LibertyContent {
 		global $gBitSmarty;
 		if ( empty( $this->mDate ) ) return [];
 
-		$focus = $this->mDate->getdate( $pDateHash['focus_date'], false );
+		// getdate() (no such BitDate method) fixed to native GMT-based equivalents - see
+		// doRangeCalculations()'s matching comment.
+		$focus = [
+			'mon'  => (int)gmdate( 'n', $pDateHash['focus_date'] ),
+			'mday' => (int)gmdate( 'j', $pDateHash['focus_date'] ),
+			'year' => (int)gmdate( 'Y', $pDateHash['focus_date'] ),
+			'wday' => (int)gmdate( 'w', $pDateHash['focus_date'] ),
+		];
 
 		$prev_month_end	  = $this->mDate->gmmktime( 0, 0, 0, $focus['mon'],     0, $focus['year'] );
 		$next_month_begin = $this->mDate->gmmktime( 0, 0, 0, $focus['mon'] + 1, 1, $focus['year'] );
 
-		$prev_month_end_info = $this->mDate->getdate( $prev_month_end, false );
+		$prev_month_end_info = [
+			'mon'  => (int)gmdate( 'n', $prev_month_end ),
+			'year' => (int)gmdate( 'Y', $prev_month_end ),
+		];
 		$prev_month = $prev_month_end_info['mon'];
 		$prev_month_year = $prev_month_end_info['year'];
 
@@ -372,11 +413,22 @@ class Calendar extends LibertyContent {
 		// set up the todate
 		if( !empty( $pRequest["todate"] ) ) {
 			// clean up todate. who knows where this has come from
-			$pStore['focus_date'] = is_numeric( $pRequest['todate'] ) ? $pRequest['todate'] = $this->mDate->gmmktime( 0, 0, 0, $this->mDate->date( 'm', $pRequest['todate'], true ), $this->mDate->date( 'd', $pRequest['todate'], true ), $this->mDate->date( 'Y', $pRequest['todate'], true ) ) : $pRequest['todate'] = $this->mDate->gmmktime( 0, 0, 0, $this->mDate->date2( 'm', $pRequest['todate'], true ), $this->mDate->date2( 'd', $pRequest['todate'], true ), $this->mDate->date2( 'Y', $pRequest['todate'], true ) );
+			// native gmdate()/strtotime() replace BitDate::date()/date2() - both only ever
+			// existed to cover a historical/pre-1970 date range this package never needs (see
+			// kernel/DATETIME.md). A non-numeric todate is treated as a UTC-ish date string
+			// (matching this file's own GMT-first convention elsewhere), falling back to now()
+			// if genuinely unparseable rather than fataling.
+			$todateEpoch = is_numeric( $pRequest['todate'] )
+				? (int)$pRequest['todate']
+				: ( strtotime( $pRequest['todate'].' UTC' ) ?: time() );
+			$pStore['focus_date'] = $pRequest['todate'] = $this->mDate->gmmktime(
+				0, 0, 0,
+				(int)gmdate( 'n', $todateEpoch ), (int)gmdate( 'j', $todateEpoch ), (int)gmdate( 'Y', $todateEpoch )
+			);
 		} elseif( !empty( $pStore['focus_date'] ) ) {
 			$pRequest["todate"] = $pStore['focus_date'];
 		} else {
-			$pStore['focus_date'] = $this->mDate->gmmktime( 0, 0, 0, $this->mDate->date( 'm' ), $this->mDate->date( 'd' ), $this->mDate->date( 'Y' ) );
+			$pStore['focus_date'] = $this->mDate->gmmktime( 0, 0, 0, (int)gmdate( 'n' ), (int)gmdate( 'j' ), (int)gmdate( 'Y' ) );
 			$pRequest["todate"] = $pStore['focus_date'];
 		}
 
