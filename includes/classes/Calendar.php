@@ -239,16 +239,54 @@ class Calendar extends LibertyContent {
 			$endOffset   = $this->mDate->get_display_offset( $stop_time );
 			$hours_count = ( ( $stop_time - $endOffset ) - ( $start_time - $startOffset ) ) / ( 60 * 60 );
 
+			// Which whole naive hour-label the transition actually falls on, and which way -
+			// so the row LABELS can skip the hour that never happened locally (spring-forward)
+			// or repeat the hour that happened twice (fall-back), instead of just sliding every
+			// later label by one under a wrong assumption that hours_count still runs
+			// consecutively. Only scans at all on the rare day the offset actually changes
+			// within the window - a plain hour-by-hour walk, cheap either way. Found 2026-08-31,
+			// see kernel/DATETIME.md.
+			$transitionHour = null;
+			$transitionDelta = 0;
+			if ( $startOffset !== $endOffset ) {
+				$prevOffset = $startOffset;
+				for ( $h = $day_start + 1; $h <= $day_end; $h++ ) {
+					$label = $this->mDate->gmmktime( 0, 0, 0, $focus['mon'], $focus['mday'], $focus['year'] ) + ( 60 * 60 * $h );
+					$thisOffset = $this->mDate->get_display_offset( $label );
+					if ( $thisOffset !== $prevOffset ) {
+						$transitionHour = $h;
+						$transitionDelta = $thisOffset - $prevOffset;
+						break;
+					}
+					$prevOffset = $thisOffset;
+				}
+			}
+
+			// Build the actual sequence of whole-hour labels for the window, applying the skip/
+			// repeat found above - deliberately a plain array walked by index rather than a
+			// running counter, so the skip/repeat logic only needs to exist in one place instead
+			// of being threaded through the per-row loop below.
+			$hourSequence = [];
+			for ( $h = $day_start; $h < $day_end; $h++ ) {
+				if ( $h === $transitionHour ) {
+					if ( $transitionDelta > 0 ) {
+						// Skip - jump straight past the hour(s) that never happened locally.
+						$h += (int)( $transitionDelta / ( 60 * 60 ) );
+					} else {
+						// Repeat - emit this hour an extra time before moving on.
+						$hourSequence[] = $h;
+					}
+				}
+				$hourSequence[] = $h;
+			}
+
 			// allow for custom time intervals
 			$hour_fraction = !empty( $gBitUser->mPrefs['calendar_hour_fraction'] ) ? $gBitUser->mPrefs['calendar_hour_fraction'] : $gBitSystem->getConfig( 'calendar_hour_fraction', 1 );
 			$row_count = $hours_count * $hour_fraction;
-			// local (not GMT) - matches the mktime() (not gmmktime()) call above building $start_time
-			$hour = (int)date( 'G', $start_time ) - 1;
 			$mins = 0;
 			for( $i = 0; $i < $row_count; $i++ ) {
 				if( !( $i % $hour_fraction ) ) {
-					// set vars
-					$hour++;
+					$hour = $hourSequence[ intdiv( $i, $hour_fraction ) ];
 					$mins = 0;
 				}
 				// $hour can run past 23 on a fall-back day's extra row - gmmktime() rolls that
