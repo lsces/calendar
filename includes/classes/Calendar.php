@@ -205,10 +205,12 @@ class Calendar extends LibertyContent {
 	public function buildDay( $pDateHash ) {
 		global $gBitSystem, $gBitUser;
 		// getdate() (no such BitDate method - only _getDate() exists) was an undefined-method
-		// fatal waiting to happen; not currently reachable from anywhere (nothing calls
-		// buildDay()), found auditing BitDate's adodb dependency. Native equivalent, matching
-		// the GMT convention doRangeCalculations() above already uses for the same shape of
-		// value.
+		// fatal waiting to happen. Native equivalent, matching the GMT convention
+		// doRangeCalculations() above already uses for the same shape of value. This method IS
+		// live - called unconditionally from buildCalendar() (package_page.php's day view) -
+		// confirmed 2026-08-31 after an earlier claim here that nothing calls it turned out to
+		// be a false negative from a gitignore-aware recursive grep (see
+		// feedback_gitignore_aware_grep_false_negative memory).
 		$focus = [
 			'mon'  => (int)gmdate( 'n', $pDateHash['focus_date'] ),
 			'mday' => (int)gmdate( 'j', $pDateHash['focus_date'] ),
@@ -220,9 +222,22 @@ class Calendar extends LibertyContent {
 			// calculare what the visible day view range is
 			$day_start   = $gBitUser->mPrefs['calendar_day_start'] ?? $gBitSystem->getConfig( 'calendar_day_start', 0 );
 			$day_end     = $gBitUser->mPrefs['calendar_day_end'] ?? $gBitSystem->getConfig( 'calendar_day_end', 24 );
+			// "Local-labeled" instants (gmmktime() under this stack's always-UTC PHP default -
+			// see kernel/DATETIME.md - the same axis item['timestamp'] values from getList()
+			// already ride, per FoodDay::getDayCellHtml()'s matching comment). NOT yet the real
+			// elapsed duration between them - see below.
 			$start_time  = $this->mDate->mktime( 0, 0, 0, $focus['mon'], $focus['mday'], $focus['year'] ) + ( 60 * 60 * $day_start );
 			$stop_time   = $this->mDate->mktime( 0, 0, 0, $focus['mon'], $focus['mday'] + 1, $focus['year'] ) - ( 60 * 60 * ( 24 - $day_end ) );
-			$hours_count = ( $stop_time - $start_time ) / ( 60 * 60 );
+			// Real elapsed seconds between these two wall-clock instants, resolving the display
+			// offset independently at each boundary - same principle as
+			// Calendar::resolveViewBounds(). A fixed "-3600*(24-day_end)" assumed every day is
+			// exactly 24h; on an actual DST transition day that's wrong by an hour in whichever
+			// direction the clocks moved, silently building 24 grid rows regardless (missing the
+			// real 25th row on a fall-back day, or including a row for an hour that never
+			// happened locally on a spring-forward day). Found 2026-08-31, see kernel/DATETIME.md.
+			$startOffset = $this->mDate->get_display_offset( $start_time );
+			$endOffset   = $this->mDate->get_display_offset( $stop_time );
+			$hours_count = ( ( $stop_time - $endOffset ) - ( $start_time - $startOffset ) ) / ( 60 * 60 );
 
 			// allow for custom time intervals
 			$hour_fraction = !empty( $gBitUser->mPrefs['calendar_hour_fraction'] ) ? $gBitUser->mPrefs['calendar_hour_fraction'] : $gBitSystem->getConfig( 'calendar_hour_fraction', 1 );
@@ -236,6 +251,10 @@ class Calendar extends LibertyContent {
 					$hour++;
 					$mins = 0;
 				}
+				// $hour can run past 23 on a fall-back day's extra row - gmmktime() rolls that
+				// into $mday+1 at hour 0 cleanly, which is the honest representation of a
+				// repeated local hour (no false floor/data loss - matches how the equivalent
+				// case is already handled for the DB fetch window in resolveViewBounds()).
 				$ret[$i]['time'] = $this->mDate->gmmktime( $hour, $mins, 0, $focus['mon'], $focus['mday'], $focus['year'] );
 				$mins += 60 / $hour_fraction;
 			}
