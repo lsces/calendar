@@ -51,11 +51,7 @@ class Calendar extends LibertyContent {
 		$pListHash['include_data'] = TRUE;
 		if( !empty( $pListHash['focus_date'] ) ) {
 			$calDates = $this->doRangeCalculations( $pListHash );
-			// Resolved for focus_date itself, not "now" - a DST-observing Fixed-mode zone's
-			// offset genuinely differs by season (found 2026-08-31, see kernel/DATETIME.md).
-			$rangeOffset = $this->mDate->get_display_offset( $pListHash['focus_date'] );
-			$pListHash['time_limit_start'] = $calDates['view_start'] - $rangeOffset;
-			$pListHash['time_limit_stop'] = $calDates['view_end'] - $rangeOffset;
+			[ $pListHash['time_limit_start'], $pListHash['time_limit_stop'] ] = $this->resolveViewBounds( $calDates );
 		}
 //		if (  empty( $pListHash['sort_mode'] ) ) {
 //			$pListHash['sort_mode'] = !empty( $_REQUEST['sort_mode'] ) ? $_REQUEST['sort_mode'] : 'event_time_asc';
@@ -101,6 +97,25 @@ class Calendar extends LibertyContent {
 	/**
 	* calculate the start and stop time for the current display page
 	**/
+	/**
+	 * Resolve a view range's UTC query bounds, using the display offset in effect at EACH
+	 * boundary independently rather than one shared offset for the whole range. On a DST
+	 * transition day the offset genuinely differs between the day's start and its end (the
+	 * real local day is 23h or 25h long, not 24h) - a single shared offset either over-fetches
+	 * by an hour (spring-forward: harmless, the extra hour belongs to the following day and
+	 * per-item bucketing already puts it there) or under-fetches by an hour (fall-back: a real
+	 * gap - the day's last local hour is never fetched by either that day's or the next day's
+	 * window). Found 2026-08-31, see kernel/DATETIME.md.
+	 * @param array $pCalDates doRangeCalculations()'s return value
+	 * @return array [time_limit_start, time_limit_stop] as UTC epochs
+	 */
+	private function resolveViewBounds( array $pCalDates ): array {
+		return [
+			$pCalDates['view_start'] - $this->mDate->get_display_offset( $pCalDates['view_start'] ),
+			$pCalDates['view_end'] - $this->mDate->get_display_offset( $pCalDates['view_end'] ),
+		];
+	}
+
 	public function doRangeCalculations( $pDateHash ) {
 		// GMT-based decomposition, matching focus_date's own gmmktime() convention - native
 		// gmdate() calls replace BitDate::_getDate(), which only ever existed to cover a
@@ -165,11 +180,7 @@ class Calendar extends LibertyContent {
 		$pListHash['include_data'] = TRUE;
 		if( !empty( $pListHash['focus_date'] ) ) {
 			$calDates = $this->doRangeCalculations( $pListHash );
-			// Resolved for focus_date itself, not "now" - a DST-observing Fixed-mode zone's
-			// offset genuinely differs by season (found 2026-08-31, see kernel/DATETIME.md).
-			$rangeOffset = $this->mDate->get_display_offset( $pListHash['focus_date'] );
-			$pListHash['time_limit_start'] = $calDates['view_start'] - $rangeOffset;
-			$pListHash['time_limit_stop'] = $calDates['view_end'] - $rangeOffset;
+			[ $pListHash['time_limit_start'], $pListHash['time_limit_stop'] ] = $this->resolveViewBounds( $calDates );
 		}
 		if (  empty( $pListHash['sort_mode'] ) ) {
 			$pListHash['sort_mode'] = !empty( $_REQUEST['sort_mode'] ) ? $_REQUEST['sort_mode'] : 'event_time_asc';
@@ -486,10 +497,7 @@ class Calendar extends LibertyContent {
 			// present.
 			if ( $virtualClasses && empty( $pListHash['time_limit_start'] ) && !empty( $pListHash['focus_date'] ) ) {
 				$calDates = $this->doRangeCalculations( $pListHash );
-				// Resolved for focus_date itself, not "now" - see getList()'s matching comment.
-				$rangeOffset = $this->mDate->get_display_offset( $pListHash['focus_date'] );
-				$pListHash['time_limit_start'] = $calDates['view_start'] - $rangeOffset;
-				$pListHash['time_limit_stop']  = $calDates['view_end'] - $rangeOffset;
+				[ $pListHash['time_limit_start'], $pListHash['time_limit_stop'] ] = $this->resolveViewBounds( $calDates );
 			}
 
 			// Verify that the type is still active - also drops a guid that isn't
