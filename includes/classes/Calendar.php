@@ -83,6 +83,14 @@ class Calendar extends LibertyContent {
 			// precision, since all four belong to the same content item.
 			// and then display as a simple UTC time
 			$itemOffset = $this->mDate->get_display_offset( $item[$pListHash['time_limit_column']] );
+			// Preserved BEFORE the shift below overwrites it in place - the one unambiguous
+			// value on a fall-back day, when the labeled 'timestamp' below genuinely can't tell
+			// two real events apart (both instances of the repeated local hour shift to the
+			// identical labeled value - that's what "the same wall-clock reading occurring
+			// twice" means in this representation). Used by buildCalendar()'s day-view row
+			// matching to sort each event into its real chronological slot instead. Found
+			// 2026-08-31, see kernel/DATETIME.md.
+			$item['timestamp_utc'] = $item[$pListHash['time_limit_column']];
 			$item['timestamp']     = $item[$pListHash['time_limit_column']] + $itemOffset;
 			$item['created'] += $itemOffset;
 			$item['last_modified'] += $itemOffset;
@@ -237,64 +245,33 @@ class Calendar extends LibertyContent {
 			// happened locally on a spring-forward day). Found 2026-08-31, see kernel/DATETIME.md.
 			$startOffset = $this->mDate->get_display_offset( $start_time );
 			$endOffset   = $this->mDate->get_display_offset( $stop_time );
-			$hours_count = ( ( $stop_time - $endOffset ) - ( $start_time - $startOffset ) ) / ( 60 * 60 );
-
-			// Which whole naive hour-label the transition actually falls on, and which way -
-			// so the row LABELS can skip the hour that never happened locally (spring-forward)
-			// or repeat the hour that happened twice (fall-back), instead of just sliding every
-			// later label by one under a wrong assumption that hours_count still runs
-			// consecutively. Only scans at all on the rare day the offset actually changes
-			// within the window - a plain hour-by-hour walk, cheap either way. Found 2026-08-31,
-			// see kernel/DATETIME.md.
-			$transitionHour = null;
-			$transitionDelta = 0;
-			if ( $startOffset !== $endOffset ) {
-				$prevOffset = $startOffset;
-				for ( $h = $day_start + 1; $h <= $day_end; $h++ ) {
-					$label = $this->mDate->gmmktime( 0, 0, 0, $focus['mon'], $focus['mday'], $focus['year'] ) + ( 60 * 60 * $h );
-					$thisOffset = $this->mDate->get_display_offset( $label );
-					if ( $thisOffset !== $prevOffset ) {
-						$transitionHour = $h;
-						$transitionDelta = $thisOffset - $prevOffset;
-						break;
-					}
-					$prevOffset = $thisOffset;
-				}
-			}
-
-			// Build the actual sequence of whole-hour labels for the window, applying the skip/
-			// repeat found above - deliberately a plain array walked by index rather than a
-			// running counter, so the skip/repeat logic only needs to exist in one place instead
-			// of being threaded through the per-row loop below.
-			$hourSequence = [];
-			for ( $h = $day_start; $h < $day_end; $h++ ) {
-				if ( $h === $transitionHour ) {
-					if ( $transitionDelta > 0 ) {
-						// Skip - jump straight past the hour(s) that never happened locally.
-						$h += (int)( $transitionDelta / ( 60 * 60 ) );
-					} else {
-						// Repeat - emit this hour an extra time before moving on.
-						$hourSequence[] = $h;
-					}
-				}
-				$hourSequence[] = $h;
-			}
+			// The window's real UTC boundary - resolving the offset independently at each end,
+			// same principle as resolveViewBounds(). This is the actual axis rows are built
+			// from below, not the naive labels above (which only exist to derive this).
+			$realWindowStart = $start_time - $startOffset;
+			$realWindowStop  = $stop_time - $endOffset;
+			$hours_count = ( $realWindowStop - $realWindowStart ) / ( 60 * 60 );
 
 			// allow for custom time intervals
 			$hour_fraction = !empty( $gBitUser->mPrefs['calendar_hour_fraction'] ) ? $gBitUser->mPrefs['calendar_hour_fraction'] : $gBitSystem->getConfig( 'calendar_hour_fraction', 1 );
 			$row_count = $hours_count * $hour_fraction;
-			$mins = 0;
+			$stepSeconds = ( 60 * 60 ) / $hour_fraction;
+			// Each row is a genuinely equally-spaced real-time slot - walking forward in real
+			// time and resolving each row's own display offset independently (rather than
+			// building a run of naive local hour labels and patching for the transition
+			// afterwards) makes the skip/repeat behaviour fall out automatically: two
+			// consecutive real-time slots either side of a fall-back transition resolve to the
+			// SAME local label (the repeated hour, correctly shown twice) or, on spring-forward,
+			// jump straight over the local label that never happened - no separate scan needed.
+			// 'time_utc' is the actual real UTC boundary, kept alongside the display label so
+			// buildCalendar() can bucket events by real chronological order - the label alone
+			// can't distinguish the two real instances of a repeated hour, since by definition
+			// they shift to the identical labeled value (found 2026-08-31, see kernel/DATETIME.md).
 			for( $i = 0; $i < $row_count; $i++ ) {
-				if( !( $i % $hour_fraction ) ) {
-					$hour = $hourSequence[ intdiv( $i, $hour_fraction ) ];
-					$mins = 0;
-				}
-				// $hour can run past 23 on a fall-back day's extra row - gmmktime() rolls that
-				// into $mday+1 at hour 0 cleanly, which is the honest representation of a
-				// repeated local hour (no false floor/data loss - matches how the equivalent
-				// case is already handled for the DB fetch window in resolveViewBounds()).
-				$ret[$i]['time'] = $this->mDate->gmmktime( $hour, $mins, 0, $focus['mon'], $focus['mday'], $focus['year'] );
-				$mins += 60 / $hour_fraction;
+				$realRowStart = $realWindowStart + $i * $stepSeconds;
+				$rowOffset = $this->mDate->get_display_offset( $realRowStart );
+				$ret[$i]['time']     = $realRowStart + $rowOffset;
+				$ret[$i]['time_utc'] = $realRowStart;
 			}
 			// calendar data is added below
 		}
@@ -619,9 +596,14 @@ class Calendar extends LibertyContent {
 							foreach( $calDay as $key => $t ) {
 								// special case - last item entry in array - check this first
 
-								if( $bitEvent['timestamp'] >= $calDay[$key]['time']  && empty( $calDay[$key + 1]['time'] ) ) {
+								// Matched on real UTC time (timestamp_utc/time_utc), not the
+								// display-labeled 'timestamp'/'time' - on a fall-back day two
+								// real rows share the identical label (the repeated local hour),
+								// and only the real UTC axis can tell which one an event
+								// genuinely belongs in. Found 2026-08-31, see kernel/DATETIME.md.
+								if( $bitEvent['timestamp_utc'] >= $calDay[$key]['time_utc'] && empty( $calDay[$key + 1]['time_utc'] ) ) {
 									$calDay[$key]['items'][] = $dayEvents[$i];
-								} elseif( $bitEvent['timestamp'] >= $calDay[$key]['time'] && $bitEvent['timestamp'] < $calDay[$key + 1]['time'] ) {
+								} elseif( $bitEvent['timestamp_utc'] >= $calDay[$key]['time_utc'] && $bitEvent['timestamp_utc'] < $calDay[$key + 1]['time_utc'] ) {
 									$calDay[$key]['items'][] = $dayEvents[$i];
 								}
 							}
