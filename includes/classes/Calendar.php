@@ -27,14 +27,11 @@ define( 'WEEK_OFFSET', !empty( $gBitUser->mPrefs['calendar_week_offset'] ) ? $gB
  */
 class Calendar extends LibertyContent {
 
-	public $display_offset;
 	public $mDate;
 
 	public function __construct() {
 		parent::__construct();
-		global $gBitUser;
 		$this->mDate = new BitDate(0);
-		$this->display_offset = $this->mDate->get_display_offset();
 	}
 
 	/**
@@ -54,8 +51,11 @@ class Calendar extends LibertyContent {
 		$pListHash['include_data'] = TRUE;
 		if( !empty( $pListHash['focus_date'] ) ) {
 			$calDates = $this->doRangeCalculations( $pListHash );
-			$pListHash['time_limit_start'] = $calDates['view_start'] - $this->display_offset;
-			$pListHash['time_limit_stop'] = $calDates['view_end'] - $this->display_offset;
+			// Resolved for focus_date itself, not "now" - a DST-observing Fixed-mode zone's
+			// offset genuinely differs by season (found 2026-08-31, see kernel/DATETIME.md).
+			$rangeOffset = $this->mDate->get_display_offset( $pListHash['focus_date'] );
+			$pListHash['time_limit_start'] = $calDates['view_start'] - $rangeOffset;
+			$pListHash['time_limit_stop'] = $calDates['view_end'] - $rangeOffset;
 		}
 //		if (  empty( $pListHash['sort_mode'] ) ) {
 //			$pListHash['sort_mode'] = !empty( $_REQUEST['sort_mode'] ) ? $_REQUEST['sort_mode'] : 'event_time_asc';
@@ -78,12 +78,19 @@ class Calendar extends LibertyContent {
 		$res = $this->getContentList( $pListHash );
 
 		foreach( $res as $item ) {
-			// shift all time data by user timezone offset
+			// shift all time data by user timezone offset, resolved for this item's OWN
+			// date rather than a single request-wide value - a month/week view can span a
+			// DST transition, and a DST-observing Fixed-mode zone's offset genuinely differs
+			// either side of one (found 2026-08-31, see kernel/DATETIME.md). Using the item's
+			// own primary timestamp for created/last_modified/event_time too rather than
+			// resolving each separately - a pragmatic "close enough" call, not per-field
+			// precision, since all four belong to the same content item.
 			// and then display as a simple UTC time
-			$item['timestamp']     = $item[$pListHash['time_limit_column']] + $this->display_offset;
-			$item['created'] += $this->display_offset;
-			$item['last_modified'] += $this->display_offset;
-			$item['event_time'] += $this->display_offset;
+			$itemOffset = $this->mDate->get_display_offset( $item[$pListHash['time_limit_column']] );
+			$item['timestamp']     = $item[$pListHash['time_limit_column']] + $itemOffset;
+			$item['created'] += $itemOffset;
+			$item['last_modified'] += $itemOffset;
+			$item['event_time'] += $itemOffset;
 			$item['parsed'] = self::parseDataHash( $item );
 			$dstart = $this->mDate->gmmktime( 0, 0, 0, (int)gmdate( 'n', $item['timestamp'] ), (int)gmdate( 'j', $item['timestamp'] ), (int)gmdate( 'Y', $item['timestamp'] ) );
 			$ret[$dstart][] = $item;
@@ -158,8 +165,11 @@ class Calendar extends LibertyContent {
 		$pListHash['include_data'] = TRUE;
 		if( !empty( $pListHash['focus_date'] ) ) {
 			$calDates = $this->doRangeCalculations( $pListHash );
-			$pListHash['time_limit_start'] = $calDates['view_start'] - $this->display_offset;
-			$pListHash['time_limit_stop'] = $calDates['view_end'] - $this->display_offset;
+			// Resolved for focus_date itself, not "now" - a DST-observing Fixed-mode zone's
+			// offset genuinely differs by season (found 2026-08-31, see kernel/DATETIME.md).
+			$rangeOffset = $this->mDate->get_display_offset( $pListHash['focus_date'] );
+			$pListHash['time_limit_start'] = $calDates['view_start'] - $rangeOffset;
+			$pListHash['time_limit_stop'] = $calDates['view_end'] - $rangeOffset;
 		}
 		if (  empty( $pListHash['sort_mode'] ) ) {
 			$pListHash['sort_mode'] = !empty( $_REQUEST['sort_mode'] ) ? $_REQUEST['sort_mode'] : 'event_time_asc';
@@ -476,8 +486,10 @@ class Calendar extends LibertyContent {
 			// present.
 			if ( $virtualClasses && empty( $pListHash['time_limit_start'] ) && !empty( $pListHash['focus_date'] ) ) {
 				$calDates = $this->doRangeCalculations( $pListHash );
-				$pListHash['time_limit_start'] = $calDates['view_start'] - $this->display_offset;
-				$pListHash['time_limit_stop']  = $calDates['view_end'] - $this->display_offset;
+				// Resolved for focus_date itself, not "now" - see getList()'s matching comment.
+				$rangeOffset = $this->mDate->get_display_offset( $pListHash['focus_date'] );
+				$pListHash['time_limit_start'] = $calDates['view_start'] - $rangeOffset;
+				$pListHash['time_limit_stop']  = $calDates['view_end'] - $rangeOffset;
 			}
 
 			// Verify that the type is still active - also drops a guid that isn't
